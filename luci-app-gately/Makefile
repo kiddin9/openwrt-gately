@@ -11,7 +11,12 @@ PKG_NAME:=luci-app-gately
 
 LUCI_TITLE:=LuCI Support for Gately
 LUCI_DEPENDS:=+gately
-LUCI_PKGARCH:=all
+
+define Package/$(PKG_NAME)/prerm
+#!/bin/sh
+rm -f /tmp/gately_info_cache 2>/dev/null
+exit 0
+endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
 
