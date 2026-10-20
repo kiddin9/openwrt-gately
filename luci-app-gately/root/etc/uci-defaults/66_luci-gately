@@ -1,0 +1,16 @@
+#!/bin/sh
+
+uci -q batch <<-EOF >/dev/null
+	delete gately.main.listen
+	commit gately
+EOF
+
+if [ -z "$(uci -q get gately.main.initial_password)" ]; then
+	uci -q set gately.main.initial_password='admin123456'
+	uci -q commit gately
+fi
+
+rm -f /tmp/luci-indexcache* 2>/dev/null
+rm -f /tmp/luci-modulecache/* 2>/dev/null
+rm -f /tmp/gately_info_cache 2>/dev/null
+exit 0

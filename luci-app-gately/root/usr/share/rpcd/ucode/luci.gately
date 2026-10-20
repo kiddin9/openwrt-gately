@@ -1,0 +1,254 @@
+#!/usr/bin/ucode
+
+'use strict';
+
+import { access, open, popen, readfile, writefile, unlink, mkdir, chmod } from 'fs';
+import { cursor } from 'uci';
+
+const BIN_PATH = '/usr/bin/gately';
+const INIT_SCRIPT = '/etc/init.d/gately';
+
+function get_uci_config() {
+	let c = cursor();
+	c.load('gately');
+	let enabled = c.get('gately', 'main', 'enabled') || '0';
+	let configdir = c.get('gately', 'main', 'configdir') || '/etc/gately';
+	let initial_password = c.get('gately', 'main', 'initial_password') || 'admin123456';
+	return {
+		enabled: (enabled === '1'),
+		configdir: configdir,
+		initial_password: initial_password
+	};
+}
+
+function is_running() {
+	let p = popen('pgrep -f "^/usr/bin/gately" 2>/dev/null');
+	if (!p) return { running: false, pid: null };
+	let line = trim(p.read('line') || '');
+	p.close();
+	if (length(line) > 0) {
+		return { running: true, pid: line };
+	}
+	return { running: false, pid: null };
+}
+
+function get_version_info() {
+	if (!access(BIN_PATH, 'x')) {
+		return { version: '-', commit: '-', buildDate: '-', go: '-' };
+	}
+	let p = popen(BIN_PATH + ' -version 2>/dev/null');
+	if (!p) {
+		return { version: '-', commit: '-', buildDate: '-', go: '-' };
+	}
+	let raw = trim(p.read('all') || '');
+	p.close();
+	let parsed = {};
+	try {
+		parsed = json(raw);
+	} catch (e) {
+		parsed = { version: raw || '-' };
+	}
+	return parsed;
+}
+
+function get_arch() {
+	let p = popen('uname -m 2>/dev/null');
+	if (!p) return '-';
+	let arch = trim(p.read('line') || '-');
+	p.close();
+	return arch;
+}
+
+// Gately stores global settings in <configdir>/gately.json (settingsName = "gately")
+function read_gately_json(configdir) {
+	let path = configdir + '/gately.json';
+	if (!access(path, 'r')) {
+		return {};
+	}
+	let content = readfile(path);
+	if (!content) return {};
+	try {
+		return json(content);
+	} catch (e) {
+		return {};
+	}
+}
+
+function write_gately_json(configdir, settings) {
+	mkdir(configdir, 0700);
+	let path = configdir + '/gately.json';
+	let content = sprintf('%.2J\n', settings);
+	let res = writefile(path, content);
+	chmod(path, 0600);
+	return res;
+}
+
+// Gately stores admin account in <configdir>/account.json (accountName = "account")
+function clear_account_json(configdir) {
+	let acc_file = configdir + '/account.json';
+	if (access(acc_file, 'f')) {
+		unlink(acc_file);
+	}
+	let legacy_auth = configdir + '/auth.json';
+	if (access(legacy_auth, 'f')) {
+		unlink(legacy_auth);
+	}
+}
+
+function parse_port_from_listen(listen_str) {
+	if (!listen_str) return '16680';
+	let idx = rindex(listen_str, ':');
+	if (idx >= 0 && idx < length(listen_str) - 1) {
+		return substr(listen_str, idx + 1);
+	}
+	return listen_str;
+}
+
+function build_listen_with_port(old_listen, new_port) {
+	let port = trim('' + (new_port || '16680'));
+	if (index(port, ':') >= 0) {
+		return port;
+	}
+	if (old_listen && index(old_listen, ':') > 0) {
+		let idx = rindex(old_listen, ':');
+		let host = substr(old_listen, 0, idx);
+		return host + ':' + port;
+	}
+	return ':' + port;
+}
+
+const methods = {
+	get_status: {
+		call: function() {
+			let st = is_running();
+			return {
+				running: st.running,
+				pid: st.pid,
+				state: st.running ? 'running' : 'stopped'
+			};
+		}
+	},
+
+	get_info: {
+		call: function() {
+			let uci_cfg = get_uci_config();
+			let st = is_running();
+			let ver = get_version_info();
+			let arch = get_arch();
+			let settings = read_gately_json(uci_cfg.configdir);
+
+			let effective_listen = settings.listen || ':16680';
+			let admin_port = parse_port_from_listen(effective_listen);
+			let safe_path = settings.safePath || '';
+			if (length(safe_path) > 0 && substr(safe_path, 0, 1) !== '/') {
+				safe_path = '/' + safe_path;
+			}
+			let lan_only = (settings.lanOnly === true);
+
+			return {
+				running: st.running,
+				pid: st.pid,
+				gatelyArch: arch,
+				gatelyInfo: sprintf('%J', {
+					Version: ver.version || '-',
+					Commit: ver.commit || '-',
+					Date: ver.buildDate || '-',
+					Go: ver.go || '-'
+				}),
+				adminPort: admin_port,
+				adminListen: effective_listen,
+				adminSafeUrl: safe_path,
+				base_conf: {
+					Listen: effective_listen,
+					AdminWebListenPort: admin_port,
+					HTTPSListen: settings.httpsListen || '',
+					ForceHTTPS: settings.forceHTTPS ? true : false,
+					SafeURL: safe_path,
+					LANOnly: lan_only,
+					AllowInternetaccess: !lan_only
+				}
+			};
+		}
+	},
+
+	get_log: {
+		call: function() {
+			let p = popen('logread -e gately 2>/dev/null | tail -n 300');
+			let content = '';
+			if (p) {
+				content = p.read('all') || '';
+				p.close();
+			}
+			return {
+				log: content
+			};
+		}
+	},
+
+	set_config: {
+		args: { key: 'key', value: 'value' },
+		call: function(req) {
+			let key = req.args?.key;
+			let val = req.args?.value;
+			let uci_cfg = get_uci_config();
+			let configdir = uci_cfg.configdir;
+			let settings = read_gately_json(configdir);
+
+			if (key === 'admin_http_port') {
+				settings.listen = build_listen_with_port(settings.listen, val);
+				write_gately_json(configdir, settings);
+				return { ret: 0 };
+			} else if (key === 'admin_safe_url') {
+				let sp = trim('' + (val || ''));
+				if (length(sp) > 0 && substr(sp, 0, 1) !== '/') {
+					sp = '/' + sp;
+				}
+				settings.safePath = sp;
+				write_gately_json(configdir, settings);
+				return { ret: 0 };
+			} else if (key === 'switch_Internetaccess') {
+				let allow = (val === true || val === 'true' || val === '1' || val === 1);
+				settings.lanOnly = !allow;
+				write_gately_json(configdir, settings);
+				return { ret: 0 };
+			} else if (key === 'initial_password') {
+				let pw = trim('' + (val || ''));
+				if (length(pw) > 0 && length(pw) < 8) {
+					return { ret: 1, error: '初始密码至少 8 位' };
+				}
+				let c = cursor();
+				c.load('gately');
+				c.set('gately', 'main', 'initial_password', pw);
+				c.commit('gately');
+				clear_account_json(configdir);
+				return { ret: 0 };
+			} else if (key === 'reset_auth_info') {
+				let c = cursor();
+				c.load('gately');
+				c.set('gately', 'main', 'initial_password', 'admin123456');
+				c.commit('gately');
+				clear_account_json(configdir);
+				return { ret: 0 };
+			}
+
+			return { ret: 1, error: 'Unsupported config key: ' + key };
+		}
+	},
+
+	service: {
+		args: { action: 'action' },
+		call: function(req) {
+			let action = req.args?.action;
+			if (action === 'restart' || action === 'reload') {
+				let res = system(INIT_SCRIPT + ' stop >/dev/null 2>&1; sleep 1; ' + INIT_SCRIPT + ' start >/dev/null 2>&1');
+				return { result: (res === 0), ret: res };
+			} else if (action === 'start' || action === 'stop') {
+				let res = system(INIT_SCRIPT + ' ' + action + ' >/dev/null 2>&1');
+				return { result: (res === 0), ret: res };
+			}
+			return { result: false, ret: -1, error: 'Invalid service action' };
+		}
+	}
+};
+
+return { 'luci.gately': methods };
