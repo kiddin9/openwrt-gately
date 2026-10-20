@@ -52,7 +52,10 @@ msgstr ""
 msgid "Architecture"
 msgstr ""
 
-msgid "Compile Time"
+msgid "Admin Account"
+msgstr ""
+
+msgid "Admin Password"
 msgstr ""
 
 msgid "Admin Panel"
@@ -107,15 +110,6 @@ msgid "Safe URL cannot start with /api or /assets, nor contain spaces, ? or #"
 msgstr ""
 
 msgid "Allow Internet Access"
-msgstr ""
-
-msgid "Reset Account and Password"
-msgstr ""
-
-msgid "Reset to Default (admin / admin123456)"
-msgstr ""
-
-msgid "Are you sure you want to reset the admin account and password to default (admin / admin123456)?"
 msgstr ""
 
 msgid "Updating configuration and restarting service..."

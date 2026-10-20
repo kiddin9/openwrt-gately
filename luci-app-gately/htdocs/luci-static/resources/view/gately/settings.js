@@ -41,6 +41,12 @@ return view.extend({
 			return Promise.all(self.pendingTasks);
 		}).then(function() {
 			return uci.save();
+		}).then(function() {
+			return callSetConfig('commit_uci', '');
+		}).then(function() {
+			if (ui.changes && typeof ui.changes.setIndicator === 'function') {
+				ui.changes.setIndicator(0);
+			}
 		}).catch(function(err) {
 			ui.addNotification(null, E('p', err.message || String(err)), 'error');
 			return Promise.reject(err);
@@ -50,13 +56,14 @@ return view.extend({
 	handleSaveApply: function(ev, mode) {
 		var self = this;
 		return this.handleSave(ev).then(function() {
-			return ui.changes.apply(mode == '0');
-		}).then(function() {
 			var enabled = uci.get('gately', 'main', 'enabled');
 			var action = (enabled === '1') ? 'restart' : 'stop';
 			ui.showModal(null, [ E('p', { class: 'spinning' }, _('Updating configuration and restarting service...')) ]);
 			return callService(action).then(function() {
 				ui.hideModal();
+				if (ui.changes && typeof ui.changes.setIndicator === 'function') {
+					ui.changes.setIndicator(0);
+				}
 				ui.addNotification(null, E('p', _('Configuration updated successfully')), 'info');
 				uci.unload('gately');
 				return self.load().then(function(data) {
@@ -66,32 +73,6 @@ return view.extend({
 					if (mapEl && mapEl.parentNode) dom.content(mapEl.parentNode, node);
 				});
 			});
-		});
-	},
-
-	handleUpdate: function(key, value) {
-		ui.showModal(null, [ E('p', { class: 'spinning' }, _('Updating configuration and restarting service...')) ]);
-		var self = this;
-
-		return callSetConfig(key, value).then(function(res) {
-			if (res && res.ret === 0) {
-				var enabled = uci.get('gately', 'main', 'enabled');
-				var action = (enabled === '1') ? 'restart' : 'stop';
-				return callService(action).then(function() {
-					ui.hideModal();
-					ui.addNotification(null, E('p', _('Configuration updated successfully')), 'info');
-					uci.unload('gately');
-					return self.load().then(function(data) {
-						return self.render(data);
-					}).then(function(node) {
-						var mapEl = document.querySelector('.cbi-map');
-						if (mapEl && mapEl.parentNode) dom.content(mapEl.parentNode, node);
-					});
-				});
-			} else {
-				ui.hideModal();
-				ui.addNotification(null, E('p', (res && res.error) ? res.error : _('Failed to update configuration')), 'error');
-			}
 		});
 	},
 
@@ -188,16 +169,6 @@ return view.extend({
 		o.remove = function(section_id) {
 			self.queueSetConfig('switch_Internetaccess', false);
 		};
-
-		// Reset Auth
-		o = s.option(form.Button, '_reset_auth', _('Reset Account and Password'));
-		o.inputtitle = _('Reset to Default (admin / admin123456)');
-		o.inputstyle = 'negative';
-		o.onclick = ui.createHandlerFn(self, function() {
-			if (confirm(_('Are you sure you want to reset the admin account and password to default (admin / admin123456)?'))) {
-				return self.handleUpdate('reset_auth_info', '');
-			}
-		});
 
 		return m.render();
 	}

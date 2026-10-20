@@ -5,8 +5,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gately
-PKG_VERSION:=0.5.2
-PKG_RELEASE:=2
+PKG_VERSION:=0.3.1
+PKG_RELEASE:=3
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/wangwanjie/gately/tar.gz/v$(PKG_VERSION)?
@@ -20,14 +20,11 @@ PKG_BUILD_DEPENDS:=golang/host node/host node-pnpm/host
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_FLAGS:=no-mips16
 
-BUILD_DATE:=$(shell date -u -d "@$(SOURCE_DATE_EPOCH)" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u +"%Y-%m-%dT%H:%M:%SZ")
-
 GO_PKG:=github.com/wangwanjie/gately
 GO_PKG_BUILD_PKG:=$(GO_PKG)/cmd/gately
 GO_PKG_LDFLAGS_X:=\
 	$(GO_PKG)/internal/version.Version=v$(PKG_VERSION) \
-	$(GO_PKG)/internal/version.Commit=$(PKG_VERSION) \
-	$(GO_PKG)/internal/version.BuildDate=$(BUILD_DATE)
+	$(GO_PKG)/internal/version.Commit=$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk

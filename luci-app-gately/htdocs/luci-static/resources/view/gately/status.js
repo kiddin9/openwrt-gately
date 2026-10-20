@@ -9,35 +9,6 @@ var callGetInfo = rpc.declare({ object: 'luci.gately', method: 'get_info', expec
 var callGetStatus = rpc.declare({ object: 'luci.gately', method: 'get_status', expect: { } });
 var callService = rpc.declare({ object: 'luci.gately', method: 'service', params: ['action'], expect: { } });
 
-function pad2(n) {
-	return (n < 10 ? '0' : '') + n;
-}
-
-function formatBuildDate(raw) {
-	if (!raw || raw === '-' || raw === 'unknown') return '-';
-	var str = String(raw).trim();
-	var d = null;
-	if (/^\d{9,13}$/.test(str)) {
-		var ts = parseInt(str, 10);
-		if (str.length <= 10) ts *= 1000;
-		d = new Date(ts);
-	} else {
-		var parsed = Date.parse(str);
-		if (!isNaN(parsed)) {
-			d = new Date(parsed);
-		}
-	}
-	if (d && !isNaN(d.getTime())) {
-		return d.getFullYear() + '-' +
-			pad2(d.getMonth() + 1) + '-' +
-			pad2(d.getDate()) + ' ' +
-			pad2(d.getHours()) + ':' +
-			pad2(d.getMinutes()) + ':' +
-			pad2(d.getSeconds());
-	}
-	return str;
-}
-
 return view.extend({
 	load: function() {
 		return callGetInfo();
@@ -118,8 +89,11 @@ return view.extend({
 		el = document.getElementById('_gatelyArch');
 		if (el) dom.content(el, info.gatelyArch || '-');
 
-		el = document.getElementById('_gatelyDate');
-		if (el) dom.content(el, formatBuildDate(gatelyInfo.Date));
+		el = document.getElementById('_gatelyUser');
+		if (el) dom.content(el, info.adminUser || 'admin');
+
+		el = document.getElementById('_gatelyPassword');
+		if (el) dom.content(el, info.adminPassword || 'admin123456');
 
 		if (info.running && info.adminPort) {
 			var url = 'http://' + window.location.hostname + ':' + info.adminPort + (info.adminSafeUrl || '');
@@ -179,8 +153,12 @@ return view.extend({
 						E('td', { class: 'td left', id: '_gatelyArch' }, info.gatelyArch || '-')
 					]),
 					E('tr', { class: 'tr' }, [
-						E('td', { class: 'td left' }, _('Compile Time')),
-						E('td', { class: 'td left', id: '_gatelyDate' }, formatBuildDate(gatelyInfo.Date))
+						E('td', { class: 'td left' }, _('Admin Account')),
+						E('td', { class: 'td left', id: '_gatelyUser' }, info.adminUser || 'admin')
+					]),
+					E('tr', { class: 'tr' }, [
+						E('td', { class: 'td left' }, _('Admin Password')),
+						E('td', { class: 'td left', id: '_gatelyPassword' }, info.adminPassword || 'admin123456')
 					]),
 					E('tr', { class: 'tr' }, [
 						E('td', { class: 'td left' }, _('Admin Panel')),

@@ -52,8 +52,11 @@ msgstr "当前版本"
 msgid "Architecture"
 msgstr "系统架构"
 
-msgid "Compile Time"
-msgstr "构建时间"
+msgid "Admin Account"
+msgstr "管理员账号"
+
+msgid "Admin Password"
+msgstr "管理员密码"
 
 msgid "Admin Panel"
 msgstr "管理后台"
@@ -108,15 +111,6 @@ msgstr "安全入口不能以 /api 或 /assets 开头，且不能包含空格、
 
 msgid "Allow Internet Access"
 msgstr "允许外网访问管理后台"
-
-msgid "Reset Account and Password"
-msgstr "重置账号与密码"
-
-msgid "Reset to Default (admin / admin123456)"
-msgstr "恢复默认认证 (admin / admin123456)"
-
-msgid "Are you sure you want to reset the admin account and password to default (admin / admin123456)?"
-msgstr "确定要将管理员账号和密码恢复为默认值 (admin / admin123456) 吗？"
 
 msgid "Updating configuration and restarting service..."
 msgstr "正在更新配置并重启服务..."

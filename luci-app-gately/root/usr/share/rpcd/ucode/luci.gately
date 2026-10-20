@@ -34,11 +34,11 @@ function is_running() {
 
 function get_version_info() {
 	if (!access(BIN_PATH, 'x')) {
-		return { version: '-', commit: '-', buildDate: '-', go: '-' };
+		return { version: '-', commit: '-', go: '-' };
 	}
 	let p = popen(BIN_PATH + ' -version 2>/dev/null');
 	if (!p) {
-		return { version: '-', commit: '-', buildDate: '-', go: '-' };
+		return { version: '-', commit: '-', go: '-' };
 	}
 	let raw = trim(p.read('all') || '');
 	p.close();
@@ -84,6 +84,20 @@ function write_gately_json(configdir, settings) {
 }
 
 // Gately stores admin account in <configdir>/account.json (accountName = "account")
+function read_account_json(configdir) {
+	let path = configdir + '/account.json';
+	if (!access(path, 'r')) {
+		return {};
+	}
+	let content = readfile(path);
+	if (!content) return {};
+	try {
+		return json(content);
+	} catch (e) {
+		return {};
+	}
+}
+
 function clear_account_json(configdir) {
 	let acc_file = configdir + '/account.json';
 	if (access(acc_file, 'f')) {
@@ -136,6 +150,7 @@ const methods = {
 			let ver = get_version_info();
 			let arch = get_arch();
 			let settings = read_gately_json(uci_cfg.configdir);
+			let account = read_account_json(uci_cfg.configdir);
 
 			let effective_listen = settings.listen || ':16680';
 			let admin_port = parse_port_from_listen(effective_listen);
@@ -144,15 +159,18 @@ const methods = {
 				safe_path = '/' + safe_path;
 			}
 			let lan_only = (settings.lanOnly === true);
+			let admin_user = account.username || 'admin';
+			let admin_password = uci_cfg.initial_password || 'admin123456';
 
 			return {
 				running: st.running,
 				pid: st.pid,
 				gatelyArch: arch,
+				adminUser: admin_user,
+				adminPassword: admin_password,
 				gatelyInfo: sprintf('%J', {
 					Version: ver.version || '-',
 					Commit: ver.commit || '-',
-					Date: ver.buildDate || '-',
 					Go: ver.go || '-'
 				}),
 				adminPort: admin_port,
@@ -222,12 +240,11 @@ const methods = {
 				c.commit('gately');
 				clear_account_json(configdir);
 				return { ret: 0 };
-			} else if (key === 'reset_auth_info') {
+			} else if (key === 'commit_uci') {
 				let c = cursor();
 				c.load('gately');
-				c.set('gately', 'main', 'initial_password', 'admin123456');
 				c.commit('gately');
-				clear_account_json(configdir);
+				system('uci -q commit gately >/dev/null 2>&1');
 				return { ret: 0 };
 			}
 
@@ -239,6 +256,11 @@ const methods = {
 		args: { action: 'action' },
 		call: function(req) {
 			let action = req.args?.action;
+			let c = cursor();
+			c.load('gately');
+			c.commit('gately');
+			system('uci -q commit gately >/dev/null 2>&1');
+
 			if (action === 'restart' || action === 'reload') {
 				let res = system(INIT_SCRIPT + ' stop >/dev/null 2>&1; sleep 1; ' + INIT_SCRIPT + ' start >/dev/null 2>&1');
 				return { result: (res === 0), ret: res };
