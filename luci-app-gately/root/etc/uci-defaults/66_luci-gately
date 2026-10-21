@@ -5,10 +5,11 @@ uci -q batch <<-EOF >/dev/null
 	commit gately
 EOF
 
-if [ -z "$(uci -q get gately.main.initial_password)" ]; then
-	uci -q set gately.main.initial_password='admin123456'
-	uci -q commit gately
-fi
+[ -z "$(uci -q get gately.main.configdir)" ] && uci -q set gately.main.configdir='/etc/gately'
+[ -z "$(uci -q get gately.main.initial_password)" ] && uci -q set gately.main.initial_password='admin123456'
+[ -z "$(uci -q get gately.main.admin_port)" ] && uci -q set gately.main.admin_port='16680'
+[ -z "$(uci -q get gately.main.admin_internet)" ] && uci -q set gately.main.admin_internet='0'
+uci -q commit gately
 
 rm -f /tmp/luci-indexcache* 2>/dev/null
 rm -f /tmp/luci-modulecache/* 2>/dev/null

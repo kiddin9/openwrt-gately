@@ -12,7 +12,7 @@
 		},
 		"write": {
 			"ubus": {
-				"luci.gately": [ "set_config", "service" ]
+				"luci.gately": [ "service" ]
 			},
 			"uci": [ "gately" ],
 			"file": {

@@ -91,9 +91,6 @@ msgstr ""
 msgid "Admin password (at least 8 characters, default: admin123456). Modifying this and clicking Save & Apply will update the admin password immediately."
 msgstr ""
 
-msgid "Password must be at least 8 characters"
-msgstr ""
-
 msgid "Admin Panel Settings"
 msgstr ""
 
@@ -110,15 +107,6 @@ msgid "Safe URL cannot start with /api or /assets, nor contain spaces, ? or #"
 msgstr ""
 
 msgid "Allow Internet Access"
-msgstr ""
-
-msgid "Updating configuration and restarting service..."
-msgstr ""
-
-msgid "Configuration updated successfully"
-msgstr ""
-
-msgid "Failed to update configuration"
 msgstr ""
 
 msgid "Real-time query of the Gately running logs to diagnose DDNS updates, STUN traversal, and reverse proxy rules."
