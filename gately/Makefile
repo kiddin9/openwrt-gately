@@ -20,11 +20,14 @@ PKG_BUILD_DEPENDS:=golang/host node/host node-pnpm/host
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_FLAGS:=no-mips16
 
+BUILD_DATE:=$(shell date -u -d "@$(SOURCE_DATE_EPOCH)" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u +"%Y-%m-%dT%H:%M:%SZ")
+
 GO_PKG:=github.com/wangwanjie/gately
 GO_PKG_BUILD_PKG:=$(GO_PKG)/cmd/gately
 GO_PKG_LDFLAGS_X:=\
 	$(GO_PKG)/internal/version.Version=v$(PKG_VERSION) \
-	$(GO_PKG)/internal/version.Commit=$(PKG_VERSION)
+	$(GO_PKG)/internal/version.Commit=$(PKG_VERSION) \
+	$(GO_PKG)/internal/version.BuildDate=$(BUILD_DATE)
 
 include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
