@@ -30,6 +30,7 @@ endef
 
 define Package/luci-app-gately/conffiles
 /etc/config/gately
+/etc/gately
 endef
 
 define Build/Prepare
