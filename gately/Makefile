@@ -48,11 +48,6 @@ define Package/gately/description
   Web Terminal, scheduled tasks, and more in a single binary.
 endef
 
-define Package/gately/conffiles
-/etc/gately/
-/etc/config/gately
-endef
-
 define Build/Compile
 	( \
 		export HOME="$(PKG_BUILD_DIR)/web/.home" ; \
@@ -67,12 +62,6 @@ endef
 
 define Package/gately/install
 	$(call GoPackage/Package/Install/Bin,$(1))
-
-	$(INSTALL_DIR) $(1)/etc/gately
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_CONF) $(CURDIR)/files/gately.config $(1)/etc/config/gately
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(CURDIR)/files/gately.init $(1)/etc/init.d/gately
 endef
 
 $(eval $(call GoBinPackage,gately))
