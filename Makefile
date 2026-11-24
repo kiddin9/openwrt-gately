@@ -177,14 +177,6 @@ define Package/luci-app-gately/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/deploy/openwrt/gately.init $(1)/etc/init.d/gately
 
-	$(INSTALL_DIR) $(1)/etc/config
-	printf "\nconfig gately 'main'\n" > $(1)/etc/config/gately
-	chmod 0644 $(1)/etc/config/gately
-
-	$(INSTALL_DIR) $(1)/lib/upgrade/keep.d
-	printf "/etc/gately/\n" > $(1)/lib/upgrade/keep.d/gately
-	chmod 0644 $(1)/lib/upgrade/keep.d/gately
-
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	printf '%s\n' \
 		'#!/bin/sh' \
@@ -194,7 +186,7 @@ define Package/luci-app-gately/install
 		'fi' \
 		'rm -f /tmp/luci-indexcache /tmp/luci-indexcache.* /tmp/luci-gately-version' \
 		'rm -rf /tmp/luci-modulecache/' \
-		'killall -HUP rpcd 2>/dev/null || /etc/init.d/rpcd reload 2>/dev/null || true' \
+		'/etc/init.d/rpcd reload 2>/dev/null || true' \
 		'if /etc/init.d/gately running 2>/dev/null; then' \
 		'	/etc/init.d/gately restart >/dev/null 2>&1 || true' \
 		'fi' \
