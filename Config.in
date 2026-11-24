@@ -3,7 +3,7 @@ menu "Configuration"
 
 choice
 	prompt "Web UI language pack"
-	default GATELY_LANG_ALL
+	default GATELY_LANG_ZH
 	help
 	  Select which UI languages to bundle into the Gately web console
 	  and backend translations to reduce flash footprint on routers.
